@@ -1,0 +1,14 @@
+// @use "../../assets/styles/utils/" as *;
+.input {
+  // background-color: map-get($grey-color, "2");
+  border: none;
+  outline: none;
+  padding: 10px;
+  font-size: 1.5rem;
+  // color: map-get($accent-color, "2");
+  border-radius: 20px;
+  // width: 100%;
+}
+.label {
+  font-size: 2rem;
+}

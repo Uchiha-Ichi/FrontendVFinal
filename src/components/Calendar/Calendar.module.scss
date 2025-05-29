@@ -1,0 +1,15 @@
+// @use "../../assets/styles/utils" as *;
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  h2 {
+    font-size: 2rem;
+  }
+}
+.rcCalendar {
+  width: 40vw !important;
+  aspect-ratio: 16 / 9 !important;
+  font-size: 1.25rem !important;
+  //   gap: 10px !important;
+}

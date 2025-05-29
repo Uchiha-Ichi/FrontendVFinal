@@ -1,0 +1,15 @@
+input[type="date"] {
+  background: none;
+  border: none;
+  outline: none;
+  padding: 10px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  font-size: 2rem;
+}
+
+input[type="date"]:focus {
+  border: none;
+  box-shadow: none;
+}
