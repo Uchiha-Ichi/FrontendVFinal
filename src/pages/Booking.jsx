@@ -17,9 +17,8 @@ import {
 import { RouteContext } from "../store/RouteContext";
 import StationContext from "../store/StationContext";
 
-import { searchTrains } from "../redux/stationSearchSlice";
-import { fetchSeat, selectSeat } from "../redux/seatSlice";
-import { setCurrentTrip } from "../redux/stationSearchSlice";
+import { searchTrains, setCurrentTrip } from "../redux/stationSearchSlice";
+import { fetchSeat } from "../redux/seatSlice";
 
 import Train from "../components/Train";
 import SeatCountdown from "../components/SeatCountdown/SeatCountdown";
@@ -28,11 +27,11 @@ export default function BookingPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // from, to, date từ RouteContext
+  // from, to, date from RouteContext
   const { state } = useContext(RouteContext);
   const { from, to, date } = state;
 
-  // stations từ StationContext
+  // stations from StationContext
   const { stations } = useContext(StationContext);
 
   const [activeTripId, setActiveTripId] = useState(null);
@@ -40,11 +39,11 @@ export default function BookingPage() {
   const trips = useSelector((state) => state.stationSearch?.trips || []);
   const loading = useSelector((state) => state.stationSearch?.loading);
   const error = useSelector((state) => state.stationSearch?.error);
-  const carriages = useSelector((state) => state.seat.carriages);
+  const seats = useSelector((state) => state.seat.seats);
   const selectedSeats = useSelector((state) => state.seat.selectedSeats);
   const totalPrice = useSelector((state) => state.seat.totalPrice);
 
-  const activeTrip = trips.find((trip) => trip.tripId === activeTripId);
+  const activeTrip = trips.find((trip) => trip.id === activeTripId);
 
   const handleTransfer = () => {
     if (selectedSeats.length === 0) {
@@ -95,7 +94,7 @@ export default function BookingPage() {
     <Box py={12} px={4}>
       <ToastContainer />
 
-      {/* Tiêu đề */}
+      {/* Title */}
       <Box textAlign="center" mb={10}>
         <Heading size="xl" fontWeight="bold">
           {getStationName(from)} → {getStationName(to)}
@@ -196,22 +195,22 @@ export default function BookingPage() {
 
               {trips.map((trip) => (
                 <Card.Root
-                  key={trip.tripId}
+                  key={trip.id}
                   minW={{ base: "250px", md: "auto" }}
                   borderWidth="2px"
                   borderColor={
-                    trip.tripId === activeTripId ? "blue.500" : "gray.200"
+                    trip.id === activeTripId ? "blue.500" : "gray.200"
                   }
-                  bg={trip.tripId === activeTripId ? "blue.50" : "white"}
+                  bg={trip.id === activeTripId ? "blue.50" : "white"}
                   cursor="pointer"
                   onClick={() => {
-                    setActiveTripId(trip.tripId);
+                    setActiveTripId(trip.id);
                     dispatch(setCurrentTrip(trip));
                     dispatch(
                       fetchSeat({
-                        tripId: trip.tripId,
-                        from: trip.departureStation,
-                        to: trip.arrivalStation,
+                        tripId: trip.id,
+                        from: from,
+                        to: to,
                       })
                     ).catch((err) => {
                       toast.error(`Lỗi khi tải toa tàu: ${err}`, {
@@ -278,7 +277,7 @@ export default function BookingPage() {
 
             {activeTrip && (
               <Box>
-                <Train trainConfig={carriages} />
+                <Train trainConfig={seats} />
               </Box>
             )}
           </Grid>

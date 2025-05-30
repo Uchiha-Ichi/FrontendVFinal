@@ -1,21 +1,18 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export const fetchSeat = createAsyncThunk(
-  "fetchSeat/fetch",
+  "seat/fetchSeat",
   async ({ tripId, from, to }, { rejectWithValue }) => {
     try {
-       console.log("tripId", tripId);
-      const response = await axios.post(
-        `${API_BASE_URL}carriages/seats`,
-        {
-          tripId: tripId,
-          departureStation: from,
-          arrivalStation: to,
-        }
-      );
+      console.log("tripId", tripId);
+      const response = await axios.get(`${API_BASE_URL}trips/${tripId}/seats`, {
+        params: { from, to },
+      });
       console.log(response.data);
-      return response.data;
+      return response.data; // Giả sử là 1 mảng các ghế luôn
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Lỗi khi lấy thông tin vé"
@@ -27,39 +24,50 @@ export const fetchSeat = createAsyncThunk(
 const seatSlice = createSlice({
   name: "seat",
   initialState: {
-    seats: [], // Danh sách ghế
-    carriages: [], // Danh sách toa
-    selectedSeats: [], // Danh sách seatId của các ghế được chọn
+    seats: [], // Danh sách ghế (mảng)
+    selectedSeats: [], // Danh sách ghế đã chọn (mảng đối tượng)
     totalPrice: 0,
+    loading: false,
+    error: null,
   },
   reducers: {
     selectSeat: (state, action) => {
-      const { seatId, seatName, stt, ticketPrice, reservation, departureTime, 
-        expire } = action.payload; // seatId và ticketPrice từ action
+      const {
+        seatId,
+        seatName,
+        stt,
+        ticketPrice,
+        reservation,
+        departureTime,
+        expire,
+      } = action.payload;
 
-      // Kiểm tra xem ghế đã được chọn chưa
       const seatIndex = state.selectedSeats.findIndex(
         (seat) => seat.seatId === seatId
       );
 
       if (seatIndex !== -1) {
-        console.log("Ghế đã được xoa:", seatName);
-        // Nếu ghế đã được chọn, bỏ chọn ghế và trừ đi giá trị của ghế
-        state.selectedSeats = state.selectedSeats.filter(
-          (seat) => seat.seatId !== seatId
-        );
+        // Bỏ chọn ghế
+        state.selectedSeats.splice(seatIndex, 1);
         state.totalPrice -= ticketPrice;
       } else {
-        // Nếu ghế chưa được chọn, thêm ghế vào danh sách và cộng thêm giá trị của ghế
-        state.selectedSeats.push({ seatId, seatName, stt, ticketPrice, reservation, departureTime, expire });
+        // Chọn ghế
+        state.selectedSeats.push({
+          seatId,
+          seatName,
+          stt,
+          ticketPrice,
+          reservation,
+          departureTime,
+          expire,
+        });
         state.totalPrice += ticketPrice;
       }
     },
 
-    // Xóa tất cả ghế đã chọn
     clearSelectedSeats: (state) => {
-      state.selectedSeats = []; // Xóa tất cả ghế đã chọn
-      state.totalPrice = 0; // Đặt lại tổng tiền về 0
+      state.selectedSeats = [];
+      state.totalPrice = 0;
     },
   },
   extraReducers: (builder) => {
@@ -70,11 +78,7 @@ const seatSlice = createSlice({
       })
       .addCase(fetchSeat.fulfilled, (state, action) => {
         state.loading = false;
-        // state.seats = action.payload;
-        state.carriages = action.payload.carriages.map((carriage) => {
-          carriage.seats.sort((a, b) => a.seatId - b.seatId);
-          return carriage;
-        });
+        state.seats = action.payload;
       })
       .addCase(fetchSeat.rejected, (state, action) => {
         state.loading = false;
