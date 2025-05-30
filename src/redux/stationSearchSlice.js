@@ -3,17 +3,19 @@ import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// Gửi request tìm kiếm ga tàu 🚆
 export const searchTrains = createAsyncThunk(
   "stationSearch/searchTrains",
   async ({ from, to, date }, { rejectWithValue }) => {
     try {
       console.log(from, to, date);
-      const response = await axios.post(`${API_BASE_URL}trips/searchs`, {
-        departureStation: from,
-        arrivalStation: to,
-        tripDate: date,
+      const response = await axios.get(`${API_BASE_URL}trips/search`, {
+        params: {
+          fromStation: from,
+          toStation: to,
+          departureDate: date,
+        },
       });
+
       console.log(response.data);
 
       return response.data;
@@ -64,7 +66,7 @@ const stationSearchSlice = createSlice({
           const numA = parseInt(a.trainName.match(/\d+/)[0], 10);
           const numB = parseInt(b.trainName.match(/\d+/)[0], 10);
           return numA - numB;
-        })
+        });
       })
       .addCase(searchTrains.rejected, (state, action) => {
         state.loading = false;

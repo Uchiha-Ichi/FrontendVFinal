@@ -3,43 +3,36 @@ import React, { useState, useRef } from "react";
 const Autocomplete = ({ label, value, onChange, options = [] }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filtered, setFiltered] = useState([]);
-  const [error, setError] = useState("");
+  const [inputValue, setInputValue] = useState(value?.name || "");
   const inputRef = useRef(null);
 
   const handleInputChange = (e) => {
     const input = e.target.value;
-    onChange({ target: { value: input } });
-    setError("");
+    setInputValue(input);
 
     const matches = options.filter((option) =>
-      option.stationName.toLowerCase().includes(input.toLowerCase())
+      option.name.toLowerCase().includes(input.toLowerCase())
     );
     setFiltered(matches);
     setShowSuggestions(input.length > 0);
   };
 
-  const handleSelect = (stationName) => {
-    onChange({ target: { value: stationName } });
+  const handleSelect = (station) => {
+    setInputValue(station.name);
+    onChange(station);
     setShowSuggestions(false);
-    setError("");
   };
 
   const handleBlur = () => {
     setTimeout(() => {
-      const isValid = options.some(
-        (option) => option.stationName.toLowerCase() === value.toLowerCase()
+      const match = options.find(
+        (option) => option.name.toLowerCase() === inputValue.toLowerCase()
       );
-      if (!isValid && value !== "") {
-        setFromError("");
-        setToError("");
-
-        setError("Ga không tồn tại");
-        // Không xóa giá trị input, giữ nguyên value thông qua onChange
-      } else {
-        setError("");
+      if (match) {
+        onChange(match);
       }
       setShowSuggestions(false);
-    }, 100);
+    }, 150);
   };
 
   return (
@@ -49,24 +42,20 @@ const Autocomplete = ({ label, value, onChange, options = [] }) => {
       )}
       <input
         type="text"
-        value={value}
         ref={inputRef}
+        value={inputValue}
         onChange={handleInputChange}
-        onFocus={() => setShowSuggestions(value.length > 0)}
+        onFocus={() => setShowSuggestions(inputValue.length > 0)}
         onBlur={handleBlur}
+        placeholder="Chọn ga"
         style={{
           width: "100%",
           padding: "8px",
-          border: `1px solid ${error ? "#ff0000" : "#ccc"}`,
+          border: "1px solid #ccc",
           borderRadius: "4px",
           boxSizing: "border-box",
         }}
       />
-      {error && (
-        <div style={{ color: "red", fontSize: "12px", marginTop: "4px" }}>
-          {error}
-        </div>
-      )}
       {showSuggestions && filtered.length > 0 && (
         <ul
           style={{
@@ -88,16 +77,15 @@ const Autocomplete = ({ label, value, onChange, options = [] }) => {
         >
           {filtered.map((option) => (
             <li
-              key={option.stationId}
-              onMouseDown={() => handleSelect(option.stationName)}
+              key={option.id}
+              onMouseDown={() => handleSelect(option)}
               style={{
                 padding: "8px",
                 cursor: "pointer",
                 backgroundColor: "white",
-                ":hover": { backgroundColor: "#f1f1f1" },
               }}
             >
-              {option.stationName}
+              {option.name}
             </li>
           ))}
         </ul>
@@ -107,4 +95,3 @@ const Autocomplete = ({ label, value, onChange, options = [] }) => {
 };
 
 export default Autocomplete;
-

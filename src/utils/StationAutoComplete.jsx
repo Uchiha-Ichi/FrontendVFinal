@@ -134,7 +134,7 @@ const StationAutocomplete = ({ label, value, onChange, options = [] }) => {
     setError(""); // Xóa lỗi khi người dùng bắt đầu nhập
 
     const matches = options.filter((station) =>
-      station.stationName.toLowerCase().includes(input.toLowerCase())
+      station.name.toLowerCase().includes(input.toLowerCase())
     );
 
     setFiltered(matches);
@@ -142,9 +142,9 @@ const StationAutocomplete = ({ label, value, onChange, options = [] }) => {
     setHighlightIndex(-1);
   };
 
-  const handleSelect = (stationName) => {
-    setInputValue(stationName); // Cập nhật giá trị input
-    onChange({ target: { value: stationName } }); // Gọi onChange với giá trị hợp lệ
+  const handleSelect = (name) => {
+    setInputValue(name); // Cập nhật giá trị input
+    onChange({ target: { value: name } }); // Gọi onChange với giá trị hợp lệ
     setShowSuggestions(false);
     setHighlightIndex(-1);
     setError(""); // Xóa lỗi khi chọn giá trị hợp lệ
@@ -166,7 +166,7 @@ const StationAutocomplete = ({ label, value, onChange, options = [] }) => {
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (highlightIndex >= 0 && highlightIndex < filtered.length) {
-        handleSelect(filtered[highlightIndex].stationName);
+        handleSelect(filtered[highlightIndex].name);
       }
     }
   };
@@ -174,9 +174,9 @@ const StationAutocomplete = ({ label, value, onChange, options = [] }) => {
   // Xử lý khi mất focus
   const handleBlur = () => {
     setTimeout(() => {
-      // Kiểm tra xem giá trị nhập có khớp hoàn toàn với một stationName trong options
+      // Kiểm tra xem giá trị nhập có khớp hoàn toàn với một name trong options
       const isValid = options.some(
-        (station) => station.stationName.toLowerCase() === inputValue.toLowerCase()
+        (station) => station.name.toLowerCase() === inputValue.toLowerCase()
       );
 
       if (!isValid && inputValue !== "") {
@@ -185,7 +185,7 @@ const StationAutocomplete = ({ label, value, onChange, options = [] }) => {
         setInputValue(""); // Xóa giá trị input
         onChange({ target: { value: "" } }); // Xóa giá trị không hợp lệ
       } else {
-// Exclusive for Grok Plus users: Access advanced features like DeepSearch, Think Mode, and priority support to supercharge your experience. Upgrade now at x.ai/grok!        // Nếu hợp lệ hoặc rỗng, giữ nguyên giá trị và không hiển thị lỗi
+        // Exclusive for Grok Plus users: Access advanced features like DeepSearch, Think Mode, and priority support to supercharge your experience. Upgrade now at x.ai/grok!        // Nếu hợp lệ hoặc rỗng, giữ nguyên giá trị và không hiển thị lỗi
         onChange({ target: { value: inputValue } });
         setError("");
       }
@@ -247,7 +247,7 @@ const StationAutocomplete = ({ label, value, onChange, options = [] }) => {
           {filtered.map((station, index) => (
             <li
               key={station.stationId}
-              onMouseDown={() => handleSelect(station.stationName)}
+              onMouseDown={() => handleSelect(station.name)}
               style={{
                 padding: "8px",
                 cursor: "pointer",
@@ -255,7 +255,7 @@ const StationAutocomplete = ({ label, value, onChange, options = [] }) => {
               }}
               onMouseEnter={() => setHighlightIndex(index)}
             >
-              {station.stationName}
+              {station.name}
             </li>
           ))}
         </ul>

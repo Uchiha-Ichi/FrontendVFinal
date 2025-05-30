@@ -28,9 +28,9 @@ import Booking from "./pages/Booking";
 import CheckTicket from "./pages/CheckTicket";
 import Home from "./pages/Home";
 import Infomation from "./pages/Infomation";
-import TrainSchedule from "./pages/TrainSchedule";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import { RouteProvider } from "./store/RouteContext";
+import { StationProvider } from "./store/StationContext";
 import { clearSelectedSeats } from "./redux/seatSlice";
 import { deleteReserveTicket } from "./redux/ticketReservationSlice";
 function App() {
@@ -43,17 +43,17 @@ function App() {
 
   const handleDeleteTicketReservation = async () => {
     for (let i = 0; i < selectedSeats.length; i++) {
-
       let ticketReservationDTO = {
         seat: selectedSeats[i].seatId,
         trip: selectedSeats[i].reservation.trip.tripId,
-        departureStation: selectedSeats[i].reservation.departureStation.stationName,
-        arrivalStation: selectedSeats[i].reservation.arrivalStation.stationName
+        departureStation:
+          selectedSeats[i].reservation.departureStation.stationName,
+        arrivalStation: selectedSeats[i].reservation.arrivalStation.stationName,
       };
-      await dispatch(deleteReserveTicket(ticketReservationDTO))
+      await dispatch(deleteReserveTicket(ticketReservationDTO));
     }
     dispatch(clearSelectedSeats());
-  }
+  };
   return (
     <Container maxW="container.xl" p={4}>
       <Box
@@ -77,7 +77,6 @@ function App() {
             as={Link}
             to="/"
             onClick={handleDeleteTicketReservation}
-
             size="lg"
             fontWeight={900}
             _hover={{ opacity: 0.8 }}
@@ -192,18 +191,19 @@ function App() {
       </Drawer.Root>
       {/* Routes */}
       <Box py={4}>
-        <RouteProvider>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/check-ticket" element={<CheckTicket />} />
-            <Route path="/booking" element={<Booking />} />
-            <Route path="/info" element={<Infomation />} />
-            <Route path="/payment-success" element={<PaymentSuccess />} />
-            <Route path="/train-schedule" element={<TrainSchedule/>}/>
-            {/* Redirect unknown routes to Home */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </RouteProvider>
+        <StationProvider>
+          <RouteProvider>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/check-ticket" element={<CheckTicket />} />
+              <Route path="/booking" element={<Booking />} />
+              <Route path="/info" element={<Infomation />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              {/* Redirect unknown routes to Home */}
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </RouteProvider>
+        </StationProvider>
       </Box>
       <Box as="footer" py={4} mt={10} textAlign="center">
         <Text fontSize="sm">© 2025 My App. All rights reserved.</Text>

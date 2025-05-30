@@ -1,9 +1,9 @@
 import React, { createContext, useReducer } from "react";
 
 const initialState = {
-  from: "",
-  to: "",
-  date: "",
+  from: null,
+  to: null,
+  date: null,
 };
 
 const SET_FROM = "SET_FROM";
