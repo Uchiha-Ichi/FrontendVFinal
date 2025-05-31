@@ -1,4 +1,9 @@
+
 import React, { useState, useContext } from "react";
+
+import { useSelector, useDispatch } from "react-redux";
+import { selectSeat } from "../redux/seatSlice";
+
 import {
   Box,
   Text,
@@ -9,7 +14,6 @@ import {
   // useToast,
 } from "@chakra-ui/react";
 import { ToastContainer, toast } from "react-toastify";
-import { useDispatch } from "react-redux";
 import { reserveTicket, deleteReserveTicket } from "../redux/ticketReservationSlice";
 import { RouteContext } from "../store/RouteContext";
 // Component: Ghế
@@ -39,7 +43,7 @@ const Seat = ({ seat, isSelected, onClick }) => {
   );
 };
 
-// Component: Toa
+// Component: Toa (Car)
 const Car = ({ carId, carTypeName, seats }) => {
   const [selectedSeats, setSelectedSeats] = useState([]);
   const dispatch = useDispatch();
@@ -53,14 +57,14 @@ const Car = ({ carId, carTypeName, seats }) => {
         ? 4
         : 2;
 
-  const toggleSelectSeat = (seatId, from, to) => {
+  const toggleSelectSeat = (seat, from, to) => {
     var reserveReqDTO = {
-      seatId: seatId,
+      seatId: seat.id,
       from: from,
       to: to
     }
-    if (selectedSeats.includes(seatId)) {
-      setSelectedSeats((prev) => prev.filter((id) => id !== seatId));
+    if (selectedSeats.includes(seat.id)) {
+      setSelectedSeats((prev) => prev.filter((id) => id !== seat.id));
       dispatch(
         deleteReserveTicket(
           reserveReqDTO
@@ -90,7 +94,7 @@ const Car = ({ carId, carTypeName, seats }) => {
         return;
       }
 
-      setSelectedSeats((prev) => [...prev, seatId]);
+      setSelectedSeats((prev) => [...prev, seat]);
       dispatch(reserveTicket(
         reserveReqDTO
       )).then((response) => {
@@ -107,6 +111,8 @@ const Car = ({ carId, carTypeName, seats }) => {
         }
       });
     }
+
+    dispatch(selectSeat(seat));
   };
 
   const rows = [];
@@ -136,8 +142,8 @@ const Car = ({ carId, carTypeName, seats }) => {
               <Seat
                 key={seat.id}
                 seat={seat}
-                isSelected={selectedSeats.includes(seat.id)}
-                onClick={() => toggleSelectSeat(seat.id, from, to)}
+                isSelected={selectedSeats.some((s) => s.id === seat.id)}
+                onClick={() => toggleSelectSeat(seat, from, to)}
               />
             ))}
           </HStack>

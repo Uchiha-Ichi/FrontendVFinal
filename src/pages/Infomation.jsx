@@ -1,12 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect } from "react";
-import { featchTicketType } from "../redux/ticketType";
 import { clearSelectedSeats, selectSeat } from "../redux/seatSlice";
 import { deleteReserveTicket } from "../redux/ticketReservationSlice";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { setTicketsToBook } from "../redux/ticketSlice"; // import action
+import { fetchPassengerTypes } from "../redux/passengerTypeSlice";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Box,
   Flex,
@@ -17,63 +16,55 @@ import {
   Button,
   Table,
   Portal,
-  HStack, Stack, VStack,
-  createListCollection
+  HStack,
+  Stack,
+  VStack,
+  createListCollection,
 } from "@chakra-ui/react";
-import { groupBy } from "es-toolkit"
 import SeatCountdown from "../components/SeatCountdown/SeatCountdown";
-// import { DeleteIcon } from "@chakra-ui/icons";
-// import { bookTickets, testTicket } from "../../redux/ticketSlice";
+
 export default function Infomation() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const selectedSeats = useSelector((state) => state.seat.selectedSeats);
 
-  const { types, loading, error } = useSelector((state) => state.ticketType);
-  if (loading) return <p>Đang tải...</p>;
-  if (error) return <p>Lỗi: {error}</p>;
-  if (selectedSeats.length === 0) {
-    navigate("/");
-  }
+  const ticketsToBook = useSelector(
+    (state) => state.ticket.ticketsToBook || []
+  );
+  const selectedSeats = useSelector((state) => state.seat.selectedSeats);
+  const passengerTypes = useSelector(
+    (state) => state.passengerType.types || []
+  );
+
   const [customerInfo, setCustomerInfo] = useState({
     fullName: "",
     phone: "",
     cccd: "",
     email: "",
   });
+
   const [tickets, setTickets] = useState([]);
 
-
-  // const getPrice = (reservation) => {
-  //   let price = 0;
-  //   price = reservation.seat * reservation.seat.car
-  //   return
-  // }
   useEffect(() => {
-    // console.log("here");
-    if (selectedSeats?.length > 0) {
+    if (ticketsToBook.length > 0) {
       setTickets(
-        selectedSeats.map((selectedSeat) => ({
-          ticketId: selectedSeat.reservation.ticketId,
-          trip: selectedSeat.reservation.tripId,
-          departureStation: selectedSeat.reservation.departureStation,
-          arrivalStation: selectedSeat.reservation.arrivalStation,
+        ticketsToBook.map((ticket) => ({
+          ...ticket,
           fullName: "",
           cccd: "",
-          price: selectedSeat.ticketPrice,
           discount: 0,
-          totalPrice: selectedSeat.ticketPrice,
-          seat: selectedSeat.seatId,
-          ticketType: types[1],
-          expire: 0,
+          totalPrice: ticket.ticketPrice || 0,
+          passengeType: "Người lớn",
+          expire: ticket.expire,
         }))
       );
-    }
-    if (selectedSeats.length === 0) {
+    } else {
       navigate("/");
     }
-  }, []);
+  }, [ticketsToBook, navigate]);
 
+  useEffect(() => {
+    dispatch(fetchPassengerTypes());
+  }, [dispatch]);
 
   const handlePay = async (event) => {
     event.preventDefault();
@@ -84,18 +75,24 @@ export default function Infomation() {
       };
       console.log("payload", payload);
 
-      const totalAmount = getTotalAmount() || 0;;
-      let requestData = { customer: customerInfo.fullName, amount: totalAmount };
-      // console.log("reqData", requestData); 
-      //  const response = await fetch("${API_BASE_URL}station/all");
-      const response = await axios.post("http://localhost:5000/payment", requestData,
-        { headers: { "Content-Type": "application/json" } });
+      const totalAmount = tickets.reduce(
+        (sum, t) => sum + (t.totalPrice || 0),
+        0
+      );
+      let requestData = {
+        customer: customerInfo.fullName,
+        amount: totalAmount,
+      };
+
+      const response = await axios.post(
+        "http://localhost:5000/payment",
+        requestData,
+        { headers: { "Content-Type": "application/json" } }
+      );
 
       if (response.data && response.data.resultCode === 0) {
         localStorage.setItem("payload", JSON.stringify(payload));
-
         window.location.href = response.data.payUrl;
-
       } else {
         console.error("Thanh toán thất bại:", response.data);
       }
@@ -104,31 +101,21 @@ export default function Infomation() {
     }
   };
 
-  const handleDeleteAllTicketReservation = async () => {
-    for (let i = 0; i < selectedSeats.length; i++) {
-
-      let ticketReservationDTO = {
-        seat: selectedSeats[i].seatId,
-        trip: selectedSeats[i].reservation.tripId,
-        departureStation: selectedSeats[i].reservation.departureStation.stationName,
-        arrivalStation: selectedSeats[i].reservation.arrivalStation.stationName
-      };
-      await dispatch(deleteReserveTicket(ticketReservationDTO))
-    }
-    dispatch(clearSelectedSeats());
-
-  }
   const handleDeleteTicketReservation = async (index) => {
-    const selectedSeat = selectedSeats[index];
-    if (!selectedSeat) return;
+    if (!selectedSeats[index]) return;
+
+    const seatToDelete = selectedSeats[index];
+    const ticketToDelete = tickets[index];
+
     let ticketReservationDTO = {
-      seat: selectedSeats[index].seatId,
-      trip: selectedSeats[index].reservation.tripId,
-      departureStation: selectedSeats[index].reservation.departureStation.stationName,
-      arrivalStation: selectedSeats[index].reservation.arrivalStation.stationName
+      seat: seatToDelete.seatId,
+      trip: seatToDelete.reservation.tripId,
+      departureStation: seatToDelete.reservation.departureStation.stationName,
+      arrivalStation: seatToDelete.reservation.arrivalStation.stationName,
     };
+
     try {
-      const response = await dispatch(deleteReserveTicket(ticketReservationDTO));
+      const response = dispatch(deleteReserveTicket(ticketReservationDTO));
       if (response.error) {
         console.error("Lỗi khi xóa vé:", response.error);
       }
@@ -136,65 +123,57 @@ export default function Infomation() {
       console.error("Lỗi khi gọi API xóa vé:", error);
     }
 
-    await dispatch(selectSeat({
-      seatId: selectedSeats[index].seatId,
-      seatName: selectedSeats[index].seatNumber,
-      stt: null,
-      ticketPrice: selectedSeats[index].ticketPrice,
-      reservation: null,
-      departureTime: null,
-      expire: 0,
-    }));
-    setTickets((prevTickets) =>
-      prevTickets.filter((t) => t.ticketReservation.seat.seatId !== selectedSeats[index].seatId)
-    );
-  }
+    dispatch(clearSelectedSeats()); // hoặc dispatch từng seat để remove tùy cách bạn làm slice
 
+    setTickets((prev) => prev.filter((_, i) => i !== index));
 
-  const handlePrice = (category, index) => {
-    // console.log("category", category.value);
-    let newPrice = selectedSeats[index].ticketPrice; // Giá mặc định
-    let newDiscount = 0;
-    let idType = 0;
-    if (category.value[0] === "Trẻ em") {
-      idType = 1;
-      newDiscount = 0.5;
-      newPrice = selectedSeats[index].ticketPrice * (1 - newDiscount);
-    } else if (category.value[0] === "Sinh viên") {
-      idType = 3;
-      newDiscount = 0.1
-      newPrice = selectedSeats[index].ticketPrice * (1 - newDiscount);
-    } else if (category.value[0] === "Người cao tuổi") {
-      idType = 2;
-      newDiscount = 0.3
-      newPrice = selectedSeats[index].ticketPrice * (1 - newDiscount);
+    // TODO: nếu muốn sync lại ticketsToBook trong redux sau xóa, dispatch setTicketsToBook nếu cần
+  };
+
+  const handlePrice = (value, index) => {
+    let discount = 0;
+    let passengerType = "Người lớn";
+
+    if (value === "Trẻ em") {
+      discount = 0.5;
+      passengerType = "Trẻ em";
+    } else if (value === "Sinh viên") {
+      discount = 0.1;
+      passengerType = "Sinh viên";
+    } else if (value === "Người cao tuổi") {
+      discount = 0.3;
+      passengerType = "Người cao tuổi";
     }
 
-    // Cập nhật giá cho vé tương ứng
-    setTickets((prevTickets) => {
-      const updatedTickets = [...prevTickets];
-      updatedTickets[index] = { ...updatedTickets[index], totalPrice: newPrice };
-      updatedTickets[index] = { ...updatedTickets[index], discount: newDiscount };
-      updatedTickets[index] = { ...updatedTickets[index], ticketType: types[idType] };
-      return updatedTickets;
+    setTickets((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        discount,
+        passengerType,
+        totalPrice: updated[index].ticketPrice * (1 - discount),
+      };
+      return updated;
     });
   };
-  // console.log(types);
-
 
   const collection = createListCollection({
-    items: types.map(type => ({
-      label: type.ticketTypeName,
-      value: type.ticketTypeName,
-      discountRate: type.discountRate
+    items: passengerTypes.map((type) => ({
+      label: type.typeName,
+      value: type.typeName,
+      discountRate: type.discountRate,
     })),
-  })
+  });
+
   const getTotalAmount = () => {
-    return tickets.reduce((sum, ticket) => sum + (ticket?.totalPrice || 0), 0);
+    return tickets.reduce((sum, t) => sum + (t.totalPrice || 0), 0);
   };
+
   return (
     <Box p={6} maxW="1200px" mx="auto">
-      <Heading size="md" mb={4}>Danh sách vé đã chọn</Heading>
+      <Heading size="md" mb={4}>
+        Danh sách vé đã chọn
+      </Heading>
       <Table.Root variant="simple" size="sm">
         <Table.Header bg="gray.100">
           <Table.Row>
@@ -207,18 +186,25 @@ export default function Infomation() {
           </Table.Row>
         </Table.Header>
         <Table.Body>
-          {selectedSeats.map((selectedSeat, index) => (
+          {tickets.map((ticket, index) => (
             <Table.Row key={index}>
               <Table.Cell>
                 <VStack spacing={1} align="start">
-                  <Input placeholder="Họ tên" size="sm" value={tickets[index]?.fullName || ""}
+                  <Input
+                    placeholder="Họ tên"
+                    size="sm"
+                    value={ticket.fullName}
                     onChange={(e) => {
                       const newTickets = [...tickets];
                       newTickets[index].fullName = e.target.value;
                       setTickets(newTickets);
-                    }} />
-
-                  <Select.Root collection={collection} size="sm" width="320px" onValueChange={(value) => handlePrice(value, index)}
+                    }}
+                  />
+                  <Select.Root
+                    collection={collection}
+                    size="sm"
+                    width="320px"
+                    onValueChange={(value) => handlePrice(value, index)}
                   >
                     <Select.HiddenSelect />
                     <Select.Control>
@@ -240,78 +226,134 @@ export default function Infomation() {
                               </Select.Item>
                             ))}
                           </Select.ItemGroup>
-
                         </Select.Content>
                       </Select.Positioner>
                     </Portal>
                   </Select.Root>
-                  <Input placeholder="Số giấy tờ" size="sm" value={tickets[index]?.cccd || ""}
+                  <Input
+                    placeholder="Số giấy tờ"
+                    size="sm"
+                    value={ticket.cccd}
                     onChange={(e) => {
                       const newTickets = [...tickets];
                       newTickets[index].cccd = e.target.value;
                       setTickets(newTickets);
-                    }} />
+                    }}
+                  />
                 </VStack>
               </Table.Cell>
               <Table.Cell>
-                <Text fontSize="sm">{selectedSeat.reservation.trainName}, {selectedSeat.reservation.routeName}</Text>
-                <Text fontSize="sm">{selectedSeat.reservation.tripDate}</Text>
-                <Text fontSize="sm">Toa {selectedSeat.stt} - Ghế {selectedSeat.seatName}</Text>
-                <SeatCountdown expire={selectedSeat.expire} />
+                <Text fontSize="sm">
+                  {ticket.departureStation} - {ticket.arrivalStation}
+                </Text>
+                <Text fontSize="sm">
+                  {new Date(ticket.departureTime).toLocaleDateString("vi-VN")}
+                </Text>
+                <Text fontSize="sm">
+                  Toa {ticket.stt || ""} - Ghế {ticket.seatId || ""}
+                </Text>
+                <SeatCountdown expire={ticket.expire} />
               </Table.Cell>
-              <Table.Cell>{selectedSeat.ticketPrice.toLocaleString()} VND</Table.Cell>
-              <Table.Cell>Giảm {(tickets[index]?.discount * 100).toString()} %</Table.Cell>
-
-              <Table.Cell>{tickets[index]?.totalPrice.toLocaleString()} VND</Table.Cell>
-              <Table.Cell><Button bg="gray.500" cursor="pointer"
-                onClick={() => handleDeleteTicketReservation(index)} /></Table.Cell>
+              <Table.Cell>
+                {(ticket.ticketPrice || 0).toLocaleString()} VND
+              </Table.Cell>
+              <Table.Cell>{(ticket.discount * 100).toFixed(0)}%</Table.Cell>
+              <Table.Cell>
+                {(ticket.totalPrice || 0).toLocaleString()} VND
+              </Table.Cell>
+              <Table.Cell>
+                <Button
+                  size="sm"
+                  colorScheme="red"
+                  onClick={() => handleDeleteTicketReservation(index)}
+                >
+                  Xóa
+                </Button>
+              </Table.Cell>
             </Table.Row>
           ))}
         </Table.Body>
       </Table.Root>
 
       <Flex justify="flex-end" my={4} align="center" gap={2}>
-        <Button size="sm" colorScheme="gray" onClick={handleDeleteAllTicketReservation} as={Link}
-          to="/" >Xóa tất cả các vé</Button>
-        {/* <Input placeholder="Nhập mã giảm giá" size="sm" width="200px" />
-        <Button size="sm" colorScheme="blue">Áp dụng</Button> */}
+        <Button
+          size="sm"
+          colorScheme="gray"
+          onClick={() => {
+            dispatch(clearSelectedSeats());
+            navigate("/");
+          }}
+        >
+          Xóa tất cả các vé
+        </Button>
       </Flex>
 
       <Flex justify="flex-end" mb={6}>
         <Text fontWeight="bold">Tổng tiền:&nbsp;</Text>
-        <Text fontWeight="bold" color="blue.600">{getTotalAmount().toLocaleString() || "0"} VND</Text>
+        <Text fontWeight="bold" color="blue.600">
+          {getTotalAmount().toLocaleString() || "0"} VND
+        </Text>
       </Flex>
 
       <Box borderTop="1px" borderColor="gray.300" pt={4}>
-        <Heading size="sm" mb={2} color="orange.500">Thông tin người đặt vé</Heading>
+        <Heading size="sm" mb={2} color="orange.500">
+          Thông tin người đặt vé
+        </Heading>
         <Text fontSize="sm" mb={4}>
-          Quý khách vui lòng điền đầy đủ và chính xác các thông tin về người mua vé dưới đây...
+          Quý khách vui lòng điền đầy đủ và chính xác các thông tin về người mua
+          vé dưới đây...
         </Text>
         <Flex flexWrap="wrap" gap={4}>
-          <Input placeholder="Họ và tên*" width="300px" value={customerInfo?.fullName || ""}
-            onChange={(e) => {
-              setCustomerInfo((prev) => {
-                const newState = { ...prev, fullName: e.target.value };
-                return newState;
-              });
-            }} />
-          <Input placeholder="Số CMND/Hộ chiếu*" width="300px" value={customerInfo?.cccd || ""}
-            onChange={(e) => setCustomerInfo({ ...customerInfo, cccd: e.target.value })} />
-          <Input placeholder="Email để nhận vé điện tử*" width="300px" value={customerInfo?.email || ""}
-            onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })} />
-          <Input placeholder="Số di động*" width="300px" value={customerInfo?.phone || ""}
-            onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })} />
+          <Input
+            placeholder="Họ và tên*"
+            width="300px"
+            value={customerInfo.fullName}
+            onChange={(e) =>
+              setCustomerInfo((prev) => ({ ...prev, fullName: e.target.value }))
+            }
+          />
+          <Input
+            placeholder="Số CMND/Hộ chiếu*"
+            width="300px"
+            value={customerInfo.cccd}
+            onChange={(e) =>
+              setCustomerInfo((prev) => ({ ...prev, cccd: e.target.value }))
+            }
+          />
+          <Input
+            placeholder="Email để nhận vé điện tử*"
+            width="300px"
+            value={customerInfo.email}
+            onChange={(e) =>
+              setCustomerInfo((prev) => ({ ...prev, email: e.target.value }))
+            }
+          />
+          <Input
+            placeholder="Số di động*"
+            width="300px"
+            value={customerInfo.phone}
+            onChange={(e) =>
+              setCustomerInfo((prev) => ({ ...prev, phone: e.target.value }))
+            }
+          />
         </Flex>
         <Flex justify="flex-end" my={4} align="center" gap={2}>
-          <Button size="sm" colorScheme="gray" onClick={handlePay} >Thanh Toán</Button>
-          {/* <Input placeholder="Nhập mã giảm giá" size="sm" width="200px" />
-        <Button size="sm" colorScheme="blue">Áp dụng</Button> */}
+          <Button size="sm" colorScheme="gray" onClick={handlePay}>
+            Thanh Toán
+          </Button>
         </Flex>
         <Flex justify="space-between" align="center" mb={4}>
-          <Button size="sm" colorScheme="blue" as={Link} to="/booking" >
+          <Button size="sm" colorScheme="blue" as={Link} to="/booking">
             ← Quay lại chọn vé
           </Button>
-          <Heading size="md">Danh sách vé đã chọn</Heading>
+          <Heading
+            size="md"
+            color="red.400"
+            cursor="pointer"
+            onClick={() => navigate("/")}
+          >
+            Hủy đặt vé
+          </Heading>
         </Flex>
       </Box>
     </Box>
