@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   Box,
   Text,
@@ -8,14 +8,17 @@ import {
   HStack,
   // useToast,
 } from "@chakra-ui/react";
-
+import { ToastContainer, toast } from "react-toastify";
+import { useDispatch } from "react-redux";
+import { reserveTicket, deleteReserveTicket } from "../redux/ticketReservationSlice";
+import { RouteContext } from "../store/RouteContext";
 // Component: Ghế
 const Seat = ({ seat, isSelected, onClick }) => {
   const bgColor = seat.isOccupied
     ? "gray.400"
     : isSelected
-    ? "green.400"
-    : "red.300";
+      ? "green.400"
+      : "red.300";
 
   return (
     <Button
@@ -39,18 +42,42 @@ const Seat = ({ seat, isSelected, onClick }) => {
 // Component: Toa
 const Car = ({ carId, carTypeName, seats }) => {
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const dispatch = useDispatch();
   // const toast = useToast();
-
+  const { state } = useContext(RouteContext);
+  const { from, to } = state;
   const seatsInRow =
     carTypeName === "Giường nằm khoang 6 điều hòa"
       ? 3
       : carTypeName === "Ngồi mềm điều hoà"
-      ? 4
-      : 2;
+        ? 4
+        : 2;
 
-  const toggleSelectSeat = (seatId) => {
+  const toggleSelectSeat = (seatId, from, to) => {
+    var reserveReqDTO = {
+      seatId: seatId,
+      from: from,
+      to: to
+    }
     if (selectedSeats.includes(seatId)) {
       setSelectedSeats((prev) => prev.filter((id) => id !== seatId));
+      dispatch(
+        deleteReserveTicket(
+          reserveReqDTO
+        )
+      ).then((response) => {
+        if (response.error) {
+          toast.error("Lỗi khi hủy ghế đã chọn", {
+            position: "bottom-right",
+            autoClose: 4000,
+          });
+        } else {
+          toast.success("Hủy ghế thành công", {
+            position: "bottom-right",
+            autoClose: 2000,
+          });
+        }
+      });
     } else {
       if (selectedSeats.length >= 5) {
         toast({
@@ -62,15 +89,31 @@ const Car = ({ carId, carTypeName, seats }) => {
         });
         return;
       }
+
       setSelectedSeats((prev) => [...prev, seatId]);
+      dispatch(reserveTicket(
+        reserveReqDTO
+      )).then((response) => {
+        if (response.error) {
+          toast.error("Lỗi khi đặt vé: " + response.error.message, {
+            position: "bottom-right",
+            autoClose: 4000,
+          });
+        } else {
+          toast.success("Đặt vé thành công!", {
+            position: "bottom-right",
+            autoClose: 2000,
+          });
+        }
+      });
     }
   };
 
   const rows = [];
   for (let i = 0; i < seats.length; i += seatsInRow) {
     rows.push(seats.slice(i, i + seatsInRow));
-  }
 
+  }
   return (
     <Box
       border="2px solid"
@@ -94,7 +137,7 @@ const Car = ({ carId, carTypeName, seats }) => {
                 key={seat.id}
                 seat={seat}
                 isSelected={selectedSeats.includes(seat.id)}
-                onClick={() => toggleSelectSeat(seat.id)}
+                onClick={() => toggleSelectSeat(seat.id, from, to)}
               />
             ))}
           </HStack>

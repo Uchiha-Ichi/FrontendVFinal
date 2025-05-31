@@ -25,26 +25,26 @@ export const fetchTicketReservation = createAsyncThunk(
 
 export const reserveTicket = createAsyncThunk(
     "ticketReservation/reserveTicket",
-    async (ticketReservationDTO, { rejectWithValue }) => {
+    async (reserveReqDTO, { rejectWithValue }) => {
         try {
-            console.log("ticketReservationDTO", `${API_BASE_URL}ticketReservation/reserve`);
-            const response = await axios.post(`${API_BASE_URL}tickets/reserve`, ticketReservationDTO);
+            // console.log("ticketReservationDTO", `${API_BASE_URL}ticketReservation/reserve`);
+            const response = await axios.post(`${API_BASE_URL}tickets/reserve`, reserveReqDTO);
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || "L��i khi đặt vé");
+            return rejectWithValue(error.response?.data?.message || "Lỗi khi đặt vé");
         }
     }
 )
 export const deleteReserveTicket = createAsyncThunk(
     "ticketReservation/deleteReserveTicket",
-    async (ticketReservationDTO, { rejectWithValue }) => {
+    async (reserveReqDTO, { rejectWithValue }) => {
         try {
             // console.log("ticketReservationDTO", ticketReservationDTO);
-            const response = await axios.post(`${API_BASE_URL}tickets/deleteReserve`, ticketReservationDTO);
-            console.log("deleteReserveTicket", response.data)
+            const response = await axios.post(`${API_BASE_URL}tickets/cancelReserve`, reserveReqDTO);
+            // console.log("deleteReserveTicket", response.data)
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || "L��i khi đặt vé");
+            return rejectWithValue(error.response?.data?.message || "Li khi đặt vé");
         }
     }
 )
