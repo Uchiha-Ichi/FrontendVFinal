@@ -11,7 +11,6 @@ import StationContext from "../store/StationContext";
 import Calendar from "../components/Calendar/Calendar";
 import DatePicker from "../components/DatePicker/DatePicker";
 import Autocomplete from "../utils/Autocomplete";
-import { featchTicketType } from "../redux/ticketType";
 
 const SearchForm = ({
   state,
@@ -86,10 +85,6 @@ export default function Home() {
   const handleToChange = (id) => handleSetTo(id);
   const handleDateChange = (date) => handleSetDate(date);
   const handleSearch = () => navigate("/booking");
-
-  useEffect(() => {
-    dispatch(featchTicketType());
-  }, [dispatch]);
 
   if (loading) return <Container>Đang tải danh sách ga...</Container>;
 

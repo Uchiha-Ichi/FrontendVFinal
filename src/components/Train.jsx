@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { selectSeat } from "../redux/seatSlice";
 import {
   Box,
   Text,
@@ -36,10 +38,11 @@ const Seat = ({ seat, isSelected, onClick }) => {
   );
 };
 
-// Component: Toa
+// Component: Toa (Car)
 const Car = ({ carId, carTypeName, seats }) => {
-  const [selectedSeats, setSelectedSeats] = useState([]);
+  const dispatch = useDispatch();
   // const toast = useToast();
+  const selectedSeats = useSelector((state) => state.seat.selectedSeats);
 
   const seatsInRow =
     carTypeName === "Giường nằm khoang 6 điều hòa"
@@ -48,22 +51,21 @@ const Car = ({ carId, carTypeName, seats }) => {
       ? 4
       : 2;
 
-  const toggleSelectSeat = (seatId) => {
-    if (selectedSeats.includes(seatId)) {
-      setSelectedSeats((prev) => prev.filter((id) => id !== seatId));
-    } else {
-      if (selectedSeats.length >= 5) {
-        toast({
-          title: "Giới hạn",
-          description: "Chỉ được chọn tối đa 5 ghế.",
-          status: "warning",
-          duration: 2000,
-          isClosable: true,
-        });
-        return;
-      }
-      setSelectedSeats((prev) => [...prev, seatId]);
+  const toggleSelectSeat = (seat) => {
+    const isAlreadySelected = selectedSeats.some((s) => s.id === seat.id);
+
+    if (!isAlreadySelected && selectedSeats.length >= 5) {
+      toast({
+        title: "Giới hạn",
+        description: "Chỉ được chọn tối đa 5 ghế.",
+        status: "warning",
+        duration: 2000,
+        isClosable: true,
+      });
+      return;
     }
+
+    dispatch(selectSeat(seat));
   };
 
   const rows = [];
@@ -93,8 +95,8 @@ const Car = ({ carId, carTypeName, seats }) => {
               <Seat
                 key={seat.id}
                 seat={seat}
-                isSelected={selectedSeats.includes(seat.id)}
-                onClick={() => toggleSelectSeat(seat.id)}
+                isSelected={selectedSeats.some((s) => s.id === seat.id)}
+                onClick={() => toggleSelectSeat(seat)}
               />
             ))}
           </HStack>

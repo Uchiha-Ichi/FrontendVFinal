@@ -12,7 +12,7 @@ export const fetchSeat = createAsyncThunk(
         params: { from, to },
       });
       console.log(response.data);
-      return response.data; // Giả sử là 1 mảng các ghế luôn
+      return response.data; // Danh sách ghế từ API
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Lỗi khi lấy thông tin vé"
@@ -24,8 +24,8 @@ export const fetchSeat = createAsyncThunk(
 const seatSlice = createSlice({
   name: "seat",
   initialState: {
-    seats: [], // Danh sách ghế (mảng)
-    selectedSeats: [], // Danh sách ghế đã chọn (mảng đối tượng)
+    seats: [],
+    selectedSeats: [],
     totalPrice: 0,
     loading: false,
     error: null,
@@ -33,32 +33,31 @@ const seatSlice = createSlice({
   reducers: {
     selectSeat: (state, action) => {
       const {
-        seatId,
+        id,
         seatName,
         stt,
         ticketPrice,
-        reservation,
+        tripId,
+        departureStation,
+        arrivalStation,
         departureTime,
         expire,
       } = action.payload;
 
-      const seatIndex = state.selectedSeats.findIndex(
-        (seat) => seat.seatId === seatId
-      );
+      const seatIndex = state.selectedSeats.findIndex((seat) => seat.id === id);
 
       if (seatIndex !== -1) {
         // Bỏ chọn ghế
+        state.totalPrice -= state.selectedSeats[seatIndex].ticketPrice;
         state.selectedSeats.splice(seatIndex, 1);
-        state.totalPrice -= ticketPrice;
       } else {
         // Chọn ghế
         state.selectedSeats.push({
-          seatId,
+          id,
           seatName,
           stt,
           ticketPrice,
-          reservation,
-          departureTime,
+          tripId,
           expire,
         });
         state.totalPrice += ticketPrice;
@@ -70,6 +69,7 @@ const seatSlice = createSlice({
       state.totalPrice = 0;
     },
   },
+
   extraReducers: (builder) => {
     builder
       .addCase(fetchSeat.pending, (state) => {

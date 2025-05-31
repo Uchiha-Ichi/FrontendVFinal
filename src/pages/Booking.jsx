@@ -19,6 +19,7 @@ import StationContext from "../store/StationContext";
 
 import { searchTrains, setCurrentTrip } from "../redux/stationSearchSlice";
 import { fetchSeat } from "../redux/seatSlice";
+import { setTicketsToBook } from "../redux/ticketSlice";
 
 import Train from "../components/Train";
 import SeatCountdown from "../components/SeatCountdown/SeatCountdown";
@@ -53,6 +54,17 @@ export default function BookingPage() {
       });
       return;
     }
+    const ticketsToBook = selectedSeats.map((seat) => ({
+      seatId: seat.id,
+      ticketPrice: seat.ticketPrice,
+      departureTime: activeTrip.departureTime,
+      arrivalTime: activeTrip.arrivalTime,
+      departureStation: getStationName(from),
+      arrivalStation: getStationName(to),
+      expire: seat.expire,
+    }));
+    dispatch(setTicketsToBook(ticketsToBook));
+
     navigate("/info");
   };
 
@@ -161,9 +173,9 @@ export default function BookingPage() {
                     </Text>
                   ) : (
                     <>
-                      {selectedSeats.map((seat, idx) => (
+                      {selectedSeats.map((seat, id) => (
                         <Box
-                          key={idx}
+                          key={id}
                           p={2}
                           mb={2}
                           borderWidth="1px"
@@ -171,13 +183,39 @@ export default function BookingPage() {
                           bg="blue.200"
                         >
                           <Text fontWeight="bold">
-                            {seat.reservation.trainName}
+                            {activeTrip?.trainName || "Chưa rõ tên tàu"}
                           </Text>
                           <Text>
-                            {seat.reservation.departureStation} -{" "}
-                            {seat.reservation.arrivalStation}
+                            {getStationName(from)} - {getStationName(to)}
                           </Text>
-                          <Text>{seat.departureTime}</Text>
+                          <Text>
+                            {activeTrip?.departureTime
+                              ? new Date(
+                                  activeTrip.departureTime
+                                ).toLocaleString("vi-VN", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
+                              : "Chưa có thông tin thời gian"}
+                          </Text>
+                          <Text>
+                            {activeTrip?.arrivalTime
+                              ? new Date(activeTrip.arrivalTime).toLocaleString(
+                                  "vi-VN",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  }
+                                )
+                              : "Chưa có thông tin thời gian"}
+                          </Text>
+
                           <Text>
                             Toa {seat.stt} - Ghế {seat.seatName}
                           </Text>
@@ -213,7 +251,7 @@ export default function BookingPage() {
                         to: to,
                       })
                     ).catch((err) => {
-                      toast.error(`Lỗi khi tải toa tàu: ${err}`, {
+                      toast.error(`Lỗi khi tải Ghế: ${err}`, {
                         position: "bottom-right",
                         autoClose: 4000,
                       });

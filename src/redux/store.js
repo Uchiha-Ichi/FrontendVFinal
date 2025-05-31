@@ -1,7 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
-import ticketReservationReducer from "./ticketReservationSlice"; // Import slice
+import ticketReservationReducer from "./ticketReservationSlice";
 import ticketReducer from "./ticketSlice";
-import ticketTypeReducer from "./ticketType";
+import passsenTypeReducer from "./passengerTypeSlice";
 import stationAutoCompleteReducer from "./stationAutoCompleteSlice";
 import stationSearchReducer from "./stationSearchSlice";
 import seatReducer from "./seatSlice";
@@ -10,7 +10,7 @@ export const store = configureStore({
   reducer: {
     ticketReservation: ticketReservationReducer,
     ticket: ticketReducer,
-    ticketType: ticketTypeReducer,
+    passengerType: passsenTypeReducer,
     stationAutoComplete: stationAutoCompleteReducer,
     stationSearch: stationSearchReducer,
     seat: seatReducer,
