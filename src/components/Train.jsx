@@ -2,16 +2,12 @@ import React, { useState, useContext } from "react";
 import { useDispatch } from "react-redux";
 import { selectSeat } from "../redux/seatSlice";
 
-import {
-  Box,
-  Text,
-  Flex,
-  Button,
-  VStack,
-  HStack,
-} from "@chakra-ui/react";
+import { Box, Text, Flex, Button, VStack, HStack } from "@chakra-ui/react";
 import { toast } from "react-toastify";
-import { reserveTicket, deleteReserveTicket } from "../redux/ticketReservationSlice";
+import {
+  reserveTicket,
+  deleteReserveTicket,
+} from "../redux/ticketReservationSlice";
 import { RouteContext } from "../store/RouteContext";
 
 // Component: Ghế
@@ -19,8 +15,8 @@ const Seat = ({ seat, isSelected, onClick }) => {
   const bgColor = seat.isOccupied
     ? "gray.400"
     : isSelected
-      ? "green.400"
-      : "red.300";
+    ? "green.400"
+    : "red.300";
 
   return (
     <Button
@@ -52,10 +48,12 @@ const Car = ({ carId, carTypeName, seats, activeTrip }) => {
     carTypeName === "Giường nằm khoang 6 điều hòa"
       ? 3
       : carTypeName === "Ngồi mềm điều hoà"
-        ? 4
-        : 2;
+      ? 4
+      : 2;
 
   const toggleSelectSeat = (seat) => {
+    // seat.carId = carId;
+    // seat.seatNumber = seatNumber;
     const reserveReqDTO = {
       seatId: seat.id,
       from,
@@ -104,7 +102,7 @@ const Car = ({ carId, carTypeName, seats, activeTrip }) => {
       });
     }
 
-    console.log("To 123123213", to);
+    // console.log("To 123123213", to);
 
     // Gửi thông tin ghế + trip để lưu vào store seatSlice
     dispatch(
@@ -152,6 +150,7 @@ const Car = ({ carId, carTypeName, seats, activeTrip }) => {
               <Seat
                 key={seat.id}
                 seat={seat}
+                // carId={carId}
                 isSelected={selectedSeats.includes(seat.id)}
                 onClick={() => toggleSelectSeat(seat)}
               />

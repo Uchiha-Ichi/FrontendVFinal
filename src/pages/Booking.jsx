@@ -39,6 +39,7 @@ export default function BookingPage() {
 
   const trips = useSelector((state) => state.stationSearch?.trips || []);
   const loading = useSelector((state) => state.stationSearch?.loading);
+  const seatLoading = useSelector((state) => state.seat.loading);
   const error = useSelector((state) => state.stationSearch?.error);
   const seats = useSelector((state) => state.seat.seats);
   const selectedSeats = useSelector((state) => state.seat.selectedSeats);
@@ -186,33 +187,40 @@ export default function BookingPage() {
                             {seat?.trainName || "Chưa rõ tên tàu"}
                           </Text>
                           <Text>
-                            {seat?.departureStation || "Ga đi chưa rõ"} - {seat?.arrivalStation || "Ga đến chưa rõ"}
+                            {seat?.departureStation || "Ga đi chưa rõ"} -{" "}
+                            {seat?.arrivalStation || "Ga đến chưa rõ"}
                           </Text>
                           <Text>
                             {seat?.departureTime
-                              ? new Date(seat.departureTime).toLocaleString("vi-VN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              })
+                              ? new Date(seat.departureTime).toLocaleString(
+                                  "vi-VN",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  }
+                                )
                               : "Chưa có thông tin thời gian"}
                           </Text>
                           <Text>
                             {seat?.arrivalTime
-                              ? new Date(seat.arrivalTime).toLocaleString("vi-VN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              })
+                              ? new Date(seat.arrivalTime).toLocaleString(
+                                  "vi-VN",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  }
+                                )
                               : "Chưa có thông tin thời gian"}
                           </Text>
 
                           <Text>
-                            Toa {seat.stt} - Ghế {seat.seatName}
+                            Toa {seat.carId} - Ghế {seat.seatNumber}
                           </Text>
                           <SeatCountdown expire={seat.expire} />
                         </Box>
@@ -300,7 +308,10 @@ export default function BookingPage() {
                         py={1}
                         borderRadius="md"
                       >
-                        <Text>Số ghế còn lại: {trip.availableSeats}</Text>
+                        <Text>
+                          Số ghế còn lại:{" "}
+                          {seats.filter((seat) => !seat.isOccupied).length}
+                        </Text>
                       </Box>
                     </VStack>
                   </Card.Body>
@@ -309,9 +320,30 @@ export default function BookingPage() {
             </Box>
 
             {activeTrip && (
-              <Box>
-                <Train trainConfig={seats} activeTrip={activeTrip} />
-              </Box>
+              <>
+                {seatLoading && (
+                  <Box textAlign="center" my={8}>
+                    <Spinner size="lg" />
+                    <Text mt={2}>Đang tải dữ liệu ghế...</Text>
+                  </Box>
+                )}
+
+                {!seatLoading && error && (
+                  <Text color="red.500" textAlign="center" mb={6}>
+                    Lỗi: {error}
+                  </Text>
+                )}
+
+                {!seatLoading && seats.length === 0 && (
+                  <Text textAlign="center" mt={8}>
+                    Không có dữ liệu ghế phù hợp.
+                  </Text>
+                )}
+
+                <Box>
+                  <Train trainConfig={seats} activeTrip={activeTrip} />
+                </Box>
+              </>
             )}
           </Grid>
         )}
