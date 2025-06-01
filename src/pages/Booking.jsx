@@ -56,11 +56,11 @@ export default function BookingPage() {
     }
     const ticketsToBook = selectedSeats.map((seat) => ({
       seatId: seat.id,
-      ticketPrice: seat.ticketPrice,
-      departureTime: activeTrip.departureTime,
-      arrivalTime: activeTrip.arrivalTime,
-      departureStation: getStationName(from),
-      arrivalStation: getStationName(to),
+      price: seat.price,
+      departureTime: seat.departureTime,
+      arrivalTime: seat.arrivalTime,
+      departureStationId: from,
+      arrivalStationId: to,
       expire: seat.expire,
     }));
     dispatch(setTicketsToBook(ticketsToBook));
@@ -183,36 +183,31 @@ export default function BookingPage() {
                           bg="blue.200"
                         >
                           <Text fontWeight="bold">
-                            {activeTrip?.trainName || "Chưa rõ tên tàu"}
+                            {seat?.trainName || "Chưa rõ tên tàu"}
                           </Text>
                           <Text>
-                            {getStationName(from)} - {getStationName(to)}
+                            {seat?.departureStation || "Ga đi chưa rõ"} - {seat?.arrivalStation || "Ga đến chưa rõ"}
                           </Text>
                           <Text>
-                            {activeTrip?.departureTime
-                              ? new Date(
-                                  activeTrip.departureTime
-                                ).toLocaleString("vi-VN", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
+                            {seat?.departureTime
+                              ? new Date(seat.departureTime).toLocaleString("vi-VN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
                               : "Chưa có thông tin thời gian"}
                           </Text>
                           <Text>
-                            {activeTrip?.arrivalTime
-                              ? new Date(activeTrip.arrivalTime).toLocaleString(
-                                  "vi-VN",
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric",
-                                  }
-                                )
+                            {seat?.arrivalTime
+                              ? new Date(seat.arrivalTime).toLocaleString("vi-VN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
                               : "Chưa có thông tin thời gian"}
                           </Text>
 
@@ -315,7 +310,7 @@ export default function BookingPage() {
 
             {activeTrip && (
               <Box>
-                <Train trainConfig={seats} />
+                <Train trainConfig={seats} activeTrip={activeTrip} />
               </Box>
             )}
           </Grid>

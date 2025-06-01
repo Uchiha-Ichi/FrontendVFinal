@@ -1,7 +1,5 @@
-
 import React, { useState, useContext } from "react";
-
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import { selectSeat } from "../redux/seatSlice";
 
 import {
@@ -11,11 +9,11 @@ import {
   Button,
   VStack,
   HStack,
-  // useToast,
 } from "@chakra-ui/react";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import { reserveTicket, deleteReserveTicket } from "../redux/ticketReservationSlice";
 import { RouteContext } from "../store/RouteContext";
+
 // Component: Ghế
 const Seat = ({ seat, isSelected, onClick }) => {
   const bgColor = seat.isOccupied
@@ -44,12 +42,12 @@ const Seat = ({ seat, isSelected, onClick }) => {
 };
 
 // Component: Toa (Car)
-const Car = ({ carId, carTypeName, seats }) => {
-  const [selectedSeats, setSelectedSeats] = useState([]);
+const Car = ({ carId, carTypeName, seats, activeTrip }) => {
+  const [selectedSeats, setSelectedSeats] = useState([]); // lưu mảng id ghế đã chọn
   const dispatch = useDispatch();
-  // const toast = useToast();
   const { state } = useContext(RouteContext);
   const { from, to } = state;
+
   const seatsInRow =
     carTypeName === "Giường nằm khoang 6 điều hòa"
       ? 3
@@ -57,19 +55,17 @@ const Car = ({ carId, carTypeName, seats }) => {
         ? 4
         : 2;
 
-  const toggleSelectSeat = (seat, from, to) => {
-    var reserveReqDTO = {
+  const toggleSelectSeat = (seat) => {
+    const reserveReqDTO = {
       seatId: seat.id,
-      from: from,
-      to: to
-    }
+      from,
+      to,
+    };
+
     if (selectedSeats.includes(seat.id)) {
+      // Bỏ chọn ghế
       setSelectedSeats((prev) => prev.filter((id) => id !== seat.id));
-      dispatch(
-        deleteReserveTicket(
-          reserveReqDTO
-        )
-      ).then((response) => {
+      dispatch(deleteReserveTicket(reserveReqDTO)).then((response) => {
         if (response.error) {
           toast.error("Lỗi khi hủy ghế đã chọn", {
             position: "bottom-right",
@@ -83,21 +79,17 @@ const Car = ({ carId, carTypeName, seats }) => {
         }
       });
     } else {
+      // Giới hạn 5 ghế
       if (selectedSeats.length >= 5) {
-        toast({
-          title: "Giới hạn",
-          description: "Chỉ được chọn tối đa 5 ghế.",
-          status: "warning",
-          duration: 2000,
-          isClosable: true,
+        toast.warn("Chỉ được chọn tối đa 5 ghế.", {
+          position: "bottom-right",
+          autoClose: 2000,
         });
         return;
       }
 
-      setSelectedSeats((prev) => [...prev, seat]);
-      dispatch(reserveTicket(
-        reserveReqDTO
-      )).then((response) => {
+      setSelectedSeats((prev) => [...prev, seat.id]);
+      dispatch(reserveTicket(reserveReqDTO)).then((response) => {
         if (response.error) {
           toast.error("Lỗi khi đặt vé: " + response.error.message, {
             position: "bottom-right",
@@ -112,14 +104,32 @@ const Car = ({ carId, carTypeName, seats }) => {
       });
     }
 
-    dispatch(selectSeat(seat));
+    console.log("To 123123213", to);
+
+    // Gửi thông tin ghế + trip để lưu vào store seatSlice
+    dispatch(
+      selectSeat({
+        id: seat.id,
+        seatName: seat.seatName,
+        stt: seat.stt,
+        price: seat.price,
+        tripId: seat.tripId,
+        expire: seat.expire,
+        trainName: activeTrip?.trainName,
+        departureStation: from,
+        arrivalStation: to,
+        departureTime: activeTrip?.departureTime,
+        arrivalTime: activeTrip?.arrivalTime,
+      })
+    );
   };
 
+  // Tạo hàng ghế theo seatsInRow
   const rows = [];
   for (let i = 0; i < seats.length; i += seatsInRow) {
     rows.push(seats.slice(i, i + seatsInRow));
-
   }
+
   return (
     <Box
       border="2px solid"
@@ -142,8 +152,8 @@ const Car = ({ carId, carTypeName, seats }) => {
               <Seat
                 key={seat.id}
                 seat={seat}
-                isSelected={selectedSeats.some((s) => s.id === seat.id)}
-                onClick={() => toggleSelectSeat(seat, from, to)}
+                isSelected={selectedSeats.includes(seat.id)}
+                onClick={() => toggleSelectSeat(seat)}
               />
             ))}
           </HStack>
@@ -154,7 +164,8 @@ const Car = ({ carId, carTypeName, seats }) => {
 };
 
 // Component chính: Train
-export default function Train({ trainConfig }) {
+export default function Train({ trainConfig, activeTrip }) {
+  // console.log("Active Trip 1231231", activeTrip);
   // Nhóm ghế theo toa
   const groupedCars = trainConfig.reduce((acc, seat) => {
     const key = seat.carId;
@@ -190,6 +201,7 @@ export default function Train({ trainConfig }) {
             carId={car.carId}
             carTypeName={car.carTypeName}
             seats={car.seats}
+            activeTrip={activeTrip} // Truyền activeTrip xuống Car
           />
         ))}
       </VStack>

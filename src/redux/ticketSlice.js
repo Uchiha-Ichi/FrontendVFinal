@@ -9,7 +9,7 @@ export const bookTickets = createAsyncThunk(
     console.log("BookTickets", TicketDTO);
     try {
       const response = await axios.post(
-        `${API_BASE_URL}tickets/confirmTicket`,
+        `${API_BASE_URL}tickets/booking`,
         TicketDTO
       );
       return response.data;

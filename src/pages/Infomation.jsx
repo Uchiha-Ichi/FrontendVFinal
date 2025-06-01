@@ -30,7 +30,7 @@ export default function Infomation() {
   const ticketsToBook = useSelector(
     (state) => state.ticket.ticketsToBook || []
   );
-  const selectedSeats = useSelector((state) => state.seat.selectedSeats);
+  // const selectedSeats = useSelector((state) => state.seat.selectedSeats);
   const passengerTypes = useSelector(
     (state) => state.passengerType.types || []
   );
@@ -51,9 +51,9 @@ export default function Infomation() {
           ...ticket,
           fullName: "",
           cccd: "",
+          totalPrice: ticket.price || 0,
           discount: 0,
-          totalPrice: ticket.ticketPrice || 0,
-          passengeType: "Người lớn",
+          passengerType: null,
           expire: ticket.expire,
         }))
       );
@@ -69,18 +69,29 @@ export default function Infomation() {
   const handlePay = async (event) => {
     event.preventDefault();
     try {
+      const ticketReqDTOList = tickets.map(({ expire, discount, price, fullName, arrivalTime, departureTime, passengerType, seatId, ...rest }) => ({
+        ...rest,
+        name: fullName,
+        endTime: arrivalTime,
+        startTime: departureTime,
+        typeId: passengerType,
+        seatAssignmentId: seatId
+      }));
       const payload = {
-        customerDTO: customerInfo,
-        ticketRequestDTO: tickets,
+        name: customerInfo.name,
+        cccd: customerInfo.cccd,
+        phone: customerInfo.phone,
+        email: customerInfo.email,
+        ticketReqDTOList: ticketReqDTOList,
       };
       console.log("payload", payload);
 
       const totalAmount = tickets.reduce(
-        (sum, t) => sum + (t.totalPrice || 0),
+        (sum, t) => sum + (t.price || 0),
         0
       );
       let requestData = {
-        customer: customerInfo.fullName,
+        customer: customerInfo.name,
         amount: totalAmount,
       };
 
@@ -101,48 +112,50 @@ export default function Infomation() {
     }
   };
 
-  const handleDeleteTicketReservation = async (index) => {
-    if (!selectedSeats[index]) return;
+  // const handleDeleteTicketReservation = async (index) => {
+  //   if (!selectedSeats[index]) return;
 
-    const seatToDelete = selectedSeats[index];
-    const ticketToDelete = tickets[index];
+  //   const seatToDelete = selectedSeats[index];
+  //   const ticketToDelete = tickets[index];
 
-    let ticketReservationDTO = {
-      seat: seatToDelete.seatId,
-      trip: seatToDelete.reservation.tripId,
-      departureStation: seatToDelete.reservation.departureStation.stationName,
-      arrivalStation: seatToDelete.reservation.arrivalStation.stationName,
-    };
+  //   let ticketReservationDTO = {
+  //     seat: seatToDelete.seatId,
+  //     trip: seatToDelete.reservation.tripId,
+  //     departureStation: seatToDelete.reservation.departureStation.stationName,
+  //     arrivalStation: seatToDelete.reservation.arrivalStation.stationName,
+  //   };
 
-    try {
-      const response = dispatch(deleteReserveTicket(ticketReservationDTO));
-      if (response.error) {
-        console.error("Lỗi khi xóa vé:", response.error);
-      }
-    } catch (error) {
-      console.error("Lỗi khi gọi API xóa vé:", error);
-    }
+  //   try {
+  //     const response = dispatch(deleteReserveTicket(ticketReservationDTO));
+  //     if (response.error) {
+  //       console.error("Lỗi khi xóa vé:", response.error);
+  //     }
+  //   } catch (error) {
+  //     console.error("Lỗi khi gọi API xóa vé:", error);
+  //   }
 
-    dispatch(clearSelectedSeats()); // hoặc dispatch từng seat để remove tùy cách bạn làm slice
+  //   dispatch(clearSelectedSeats()); // hoặc dispatch từng seat để remove tùy cách bạn làm slice
 
-    setTickets((prev) => prev.filter((_, i) => i !== index));
+  //   setTickets((prev) => prev.filter((_, i) => i !== index));
 
-    // TODO: nếu muốn sync lại ticketsToBook trong redux sau xóa, dispatch setTicketsToBook nếu cần
-  };
+  //   // TODO: nếu muốn sync lại ticketsToBook trong redux sau xóa, dispatch setTicketsToBook nếu cần
+  // };
 
   const handlePrice = (value, index) => {
     let discount = 0;
-    let passengerType = "Người lớn";
+    let passengerType = 2;
 
-    if (value === "Trẻ em") {
+    // console.log("Selected passenger type:", value.items[0].discountRate);
+    if (value.value[0] === "Trẻ em") {
       discount = 0.5;
-      passengerType = "Trẻ em";
-    } else if (value === "Sinh viên") {
+      passengerType = 1;
+    } else if (value.value[0] === "Sinh viên") {
+      // console.log("Selected :", value);
       discount = 0.1;
-      passengerType = "Sinh viên";
-    } else if (value === "Người cao tuổi") {
+      passengerType = 3;
+    } else if (value.value[0] === "Người cao tuổi") {
       discount = 0.3;
-      passengerType = "Người cao tuổi";
+      passengerType = 4;
     }
 
     setTickets((prev) => {
@@ -151,7 +164,7 @@ export default function Infomation() {
         ...updated[index],
         discount,
         passengerType,
-        totalPrice: updated[index].ticketPrice * (1 - discount),
+        totalPrice: updated[index].price * (1 - discount),
       };
       return updated;
     });
@@ -252,10 +265,10 @@ export default function Infomation() {
                 <Text fontSize="sm">
                   Toa {ticket.stt || ""} - Ghế {ticket.seatId || ""}
                 </Text>
-                <SeatCountdown expire={ticket.expire} />
+                {/* <SeatCountdown expire={ticket.expire} /> */}
               </Table.Cell>
               <Table.Cell>
-                {(ticket.ticketPrice || 0).toLocaleString()} VND
+                {(ticket.price || 0).toLocaleString()} VND
               </Table.Cell>
               <Table.Cell>{(ticket.discount * 100).toFixed(0)}%</Table.Cell>
               <Table.Cell>
@@ -307,9 +320,9 @@ export default function Infomation() {
           <Input
             placeholder="Họ và tên*"
             width="300px"
-            value={customerInfo.fullName}
+            value={customerInfo.name}
             onChange={(e) =>
-              setCustomerInfo((prev) => ({ ...prev, fullName: e.target.value }))
+              setCustomerInfo((prev) => ({ ...prev, name: e.target.value }))
             }
           />
           <Input

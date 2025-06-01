@@ -36,11 +36,13 @@ const seatSlice = createSlice({
         id,
         seatName,
         stt,
-        ticketPrice,
+        price,
         tripId,
+        trainName,
         departureStation,
         arrivalStation,
         departureTime,
+        arrivalTime,
         expire,
       } = action.payload;
 
@@ -48,7 +50,7 @@ const seatSlice = createSlice({
 
       if (seatIndex !== -1) {
         // Bỏ chọn ghế
-        state.totalPrice -= state.selectedSeats[seatIndex].ticketPrice;
+        state.totalPrice -= state.selectedSeats[seatIndex].price;
         state.selectedSeats.splice(seatIndex, 1);
       } else {
         // Chọn ghế
@@ -56,11 +58,16 @@ const seatSlice = createSlice({
           id,
           seatName,
           stt,
-          ticketPrice,
+          price,
+          trainName,
           tripId,
           expire,
+          departureStation,
+          arrivalStation,
+          departureTime,
+          arrivalTime,
         });
-        state.totalPrice += ticketPrice;
+        state.totalPrice += price;
       }
     },
 
