@@ -35,7 +35,7 @@ const seatSlice = createSlice({
       const {
         id,
         seatName,
-        stt,
+        // stt,
         price,
         tripId,
         carId,
@@ -44,7 +44,7 @@ const seatSlice = createSlice({
         arrivalStation,
         departureTime,
         arrivalTime,
-        expire,
+        // expire,
       } = action.payload;
 
       const seatIndex = state.selectedSeats.findIndex((seat) => seat.id === id);
@@ -55,10 +55,11 @@ const seatSlice = createSlice({
         state.selectedSeats.splice(seatIndex, 1);
       } else {
         // Chọn ghế
+        const expire = Date.now() + 4 * 60 * 1000;
         state.selectedSeats.push({
           id,
           seatName,
-          stt,
+          // stt,
           price,
           trainName,
           tripId,
@@ -76,6 +77,14 @@ const seatSlice = createSlice({
     clearSelectedSeats: (state) => {
       state.selectedSeats = [];
       state.totalPrice = 0;
+    },
+
+    markSeatAsAvailable: (state, action) => {
+      const seatId = action.payload;
+      const seat = state.seats.find((s) => s.id === seatId);
+      if (seat) {
+        seat.isOccupied = false;
+      }
     },
   },
 
@@ -96,5 +105,6 @@ const seatSlice = createSlice({
   },
 });
 
-export const { selectSeat, clearSelectedSeats } = seatSlice.actions;
+export const { selectSeat, clearSelectedSeats, markSeatAsAvailable } =
+  seatSlice.actions;
 export default seatSlice.reducer;

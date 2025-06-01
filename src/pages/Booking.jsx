@@ -220,7 +220,7 @@ export default function BookingPage() {
                           </Text>
 
                           <Text>
-                            Toa {seat.carId} - Ghế {seat.seatNumber}
+                            Toa {seat.carId} - Ghế {seat.seatName}
                           </Text>
                           <SeatCountdown expire={seat.expire} />
                         </Box>

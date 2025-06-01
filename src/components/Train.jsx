@@ -1,8 +1,8 @@
-import React, { useState, useContext } from "react";
-import { useDispatch } from "react-redux";
-import { selectSeat } from "../redux/seatSlice";
+import React, { useContext } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { selectSeat, markSeatAsAvailable } from "../redux/seatSlice";
 
-import { Box, Text, Flex, Button, VStack, HStack } from "@chakra-ui/react";
+import { Box, Text, Flex, VStack, HStack, Button } from "@chakra-ui/react";
 import { toast } from "react-toastify";
 import {
   reserveTicket,
@@ -12,7 +12,8 @@ import { RouteContext } from "../store/RouteContext";
 
 // Component: Ghế
 const Seat = ({ seat, isSelected, onClick }) => {
-  const bgColor = seat.isOccupied
+  const isDisabled = seat.isOccupied && !isSelected;
+  const bgColor = isDisabled
     ? "gray.400"
     : isSelected
     ? "green.400"
@@ -20,7 +21,7 @@ const Seat = ({ seat, isSelected, onClick }) => {
 
   return (
     <Button
-      onClick={seat.isOccupied ? undefined : onClick}
+      onClick={isDisabled ? undefined : onClick}
       width="44px"
       height="44px"
       backgroundColor={bgColor}
@@ -28,8 +29,8 @@ const Seat = ({ seat, isSelected, onClick }) => {
       borderColor="gray.600"
       borderRadius="md"
       margin="4px"
-      cursor={seat.isOccupied ? "not-allowed" : "pointer"}
-      _hover={seat.isOccupied ? {} : { opacity: 0.8 }}
+      cursor={isDisabled ? "not-allowed" : "pointer"}
+      _hover={isDisabled ? {} : { opacity: 0.8 }}
       fontSize="sm"
     >
       {seat.seatNumber}
@@ -39,30 +40,24 @@ const Seat = ({ seat, isSelected, onClick }) => {
 
 // Component: Toa (Car)
 const Car = ({ carId, carTypeName, seats, activeTrip }) => {
-  const [selectedSeats, setSelectedSeats] = useState([]); // lưu mảng id ghế đã chọn
   const dispatch = useDispatch();
   const { state } = useContext(RouteContext);
   const { from, to } = state;
 
-  const seatsInRow =
-    carTypeName === "Giường nằm khoang 6 điều hòa"
-      ? 3
-      : carTypeName === "Ngồi mềm điều hoà"
-      ? 4
-      : 2;
+  const selectedSeats = useSelector((state) => state.seat.selectedSeats);
+
+  const isSeatSelected = (id) =>
+    selectedSeats.some((selected) => selected.id === id);
 
   const toggleSelectSeat = (seat) => {
-    // seat.carId = carId;
-    // seat.seatNumber = seatNumber;
     const reserveReqDTO = {
       seatId: seat.id,
       from,
       to,
     };
 
-    if (selectedSeats.includes(seat.id)) {
-      // Bỏ chọn ghế
-      setSelectedSeats((prev) => prev.filter((id) => id !== seat.id));
+    if (isSeatSelected(seat.id)) {
+      // dispatch(removeSeat(seat.id));
       dispatch(deleteReserveTicket(reserveReqDTO)).then((response) => {
         if (response.error) {
           toast.error("Lỗi khi hủy ghế đã chọn", {
@@ -70,6 +65,7 @@ const Car = ({ carId, carTypeName, seats, activeTrip }) => {
             autoClose: 4000,
           });
         } else {
+          dispatch(markSeatAsAvailable(seat.id));
           toast.success("Hủy ghế thành công", {
             position: "bottom-right",
             autoClose: 2000,
@@ -77,7 +73,6 @@ const Car = ({ carId, carTypeName, seats, activeTrip }) => {
         }
       });
     } else {
-      // Giới hạn 5 ghế
       if (selectedSeats.length >= 5) {
         toast.warn("Chỉ được chọn tối đa 5 ghế.", {
           position: "bottom-right",
@@ -86,30 +81,57 @@ const Car = ({ carId, carTypeName, seats, activeTrip }) => {
         return;
       }
 
-      setSelectedSeats((prev) => [...prev, seat.id]);
       dispatch(reserveTicket(reserveReqDTO)).then((response) => {
         if (response.error) {
-          toast.error("Lỗi khi đặt vé: " + response.error.message, {
+          toast.error("Lỗi khi chọn ghế: " + response.error.message, {
             position: "bottom-right",
             autoClose: 4000,
           });
         } else {
-          toast.success("Đặt vé thành công!", {
+          toast.success("Chọn ghế thành công!", {
             position: "bottom-right",
             autoClose: 2000,
           });
+
+          setTimeout(() => {
+            dispatch(deleteReserveTicket(reserveReqDTO)).then((action) => {
+              if (deleteReserveTicket.rejected.match(action)) {
+                toast.error(`Lỗi khi huỷ ghế ${seat.seatNumber}`, {
+                  position: "bottom-right",
+                  autoClose: 3000,
+                });
+              } else {
+                toast.info(`Hết thời gian giữ ghế ${seat.seatNumber}`, {
+                  position: "bottom-right",
+                  autoClose: 3000,
+                });
+                dispatch(
+                  selectSeat({
+                    id: seat.id,
+                    seatName: seat.seatNumber,
+                    carId: carId,
+                    price: seat.price,
+                    tripId: seat.tripId,
+                    expire: seat.expire,
+                    trainName: activeTrip?.trainName,
+                    departureStation: from,
+                    arrivalStation: to,
+                    departureTime: activeTrip?.departureTime,
+                    arrivalTime: activeTrip?.arrivalTime,
+                  })
+                );
+              }
+            });
+          }, 4 * 60 * 1000);
         }
       });
     }
 
-    // console.log("To 123123213", to);
-
-    // Gửi thông tin ghế + trip để lưu vào store seatSlice
     dispatch(
       selectSeat({
         id: seat.id,
-        seatName: seat.seatName,
-        stt: seat.stt,
+        seatName: seat.seatNumber,
+        carId: carId,
         price: seat.price,
         tripId: seat.tripId,
         expire: seat.expire,
@@ -122,7 +144,14 @@ const Car = ({ carId, carTypeName, seats, activeTrip }) => {
     );
   };
 
-  // Tạo hàng ghế theo seatsInRow
+  // Tạo hàng ghế theo cấu hình
+  const seatsInRow =
+    carTypeName === "Giường nằm khoang 6 điều hòa"
+      ? 3
+      : carTypeName === "Ngồi mềm điều hoà"
+      ? 4
+      : 2;
+
   const rows = [];
   for (let i = 0; i < seats.length; i += seatsInRow) {
     rows.push(seats.slice(i, i + seatsInRow));
@@ -150,8 +179,7 @@ const Car = ({ carId, carTypeName, seats, activeTrip }) => {
               <Seat
                 key={seat.id}
                 seat={seat}
-                // carId={carId}
-                isSelected={selectedSeats.includes(seat.id)}
+                isSelected={isSeatSelected(seat.id)}
                 onClick={() => toggleSelectSeat(seat)}
               />
             ))}
